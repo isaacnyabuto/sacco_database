@@ -1,0 +1,36 @@
+USE sacco_db;
+
+-- members data
+INSERT INTO members VALUES
+(1,'John','Mwangi','10000001','0701000001','john.mwangi@email.com','2026-05-15','active'),
+(2,'Mary','Achieng','10000002','0701000002','mary.achieng@email.com','2026-05-15','active'),
+(3,'Peter','Otieno','10000003','0701000003','peter.otieno@email.com','2026-05-15','inactive');
+
+-- accounts data
+INSERT INTO accounts VALUES
+(61,'saving',0.00,'2026-05-18 08:28:21',11),
+(62,'saving',51000.00,'2026-05-18 08:28:21',12),
+(63,'saving',0.00,'2026-05-18 08:28:21',13);
+
+-- loan applications data
+INSERT INTO loan_applications VALUES
+(5,2,'2026-05-10',30000.00,10.00,'approved',NULL),
+(9,6,'2026-05-12',45000.00,11.50,'approved',NULL);
+
+-- loans data
+INSERT INTO loan VALUES
+(1,5,2,30000.00,10.00,'active','2026-05-18',3000.00,33000.00,8000.00,'AUTO CREATED ON APPROVAL',NULL);
+
+-- loan repayments data
+INSERT INTO loan_repayments VALUES
+(1,1,'2026-05-18',2000.00,0.00),
+(2,1,'2026-05-18',3000.00,0.00);
+
+-- transactions data
+INSERT INTO transactions VALUES
+(2,61,NULL,11,'deposit',1000.00,0.00,0.00,NULL,'Test deposit','2026-05-18 08:46:44');
+
+-- users data
+INSERT INTO users VALUES
+(1,'tawama','handsomezozo','admin','2026-04-26 17:39:10',NULL),
+(2,'isaac','acc_off','staff','2026-04-29 16:32:35',NULL);

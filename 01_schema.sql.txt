@@ -1,0 +1,81 @@
+CREATE DATABASE IF NOT EXISTS `sacco_db`;
+USE `sacco_db`;
+
+CREATE TABLE `members` (
+  `membersId` int NOT NULL AUTO_INCREMENT,
+  `firstName` varchar(50) NOT NULL,
+  `lastName` varchar(50) NOT NULL,
+  `nationalId` varchar(20) NOT NULL,
+  `phone` varchar(15) DEFAULT NULL,
+  `email` varchar(100) DEFAULT NULL,
+  `join_date` date DEFAULT (curdate()),
+  `status` enum('active','inactive') DEFAULT 'active',
+  PRIMARY KEY (`membersId`),
+  UNIQUE KEY `nationalId` (`nationalId`)
+);
+
+CREATE TABLE `accounts` (
+  `account_id` int NOT NULL AUTO_INCREMENT,
+  `account_type` enum('saving','loan') NOT NULL,
+  `balance` decimal(12,2) DEFAULT '0.00',
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `membersid` int DEFAULT NULL,
+  PRIMARY KEY (`account_id`),
+  KEY `fk_member` (`membersid`),
+  CONSTRAINT `fk_member`
+  FOREIGN KEY (`membersid`) REFERENCES `members` (`membersId`)
+);
+
+CREATE TABLE `loan_applications` (
+  `application_id` int NOT NULL AUTO_INCREMENT,
+  `membersId` int NOT NULL,
+  `application_date` date NOT NULL,
+  `requested_amount` decimal(10,2) NOT NULL,
+  `interest_rate` decimal(5,2) NOT NULL,
+  `status` enum('pending','approved','rejected') DEFAULT 'pending',
+  `approved_date` date DEFAULT NULL,
+  PRIMARY KEY (`application_id`),
+  CONSTRAINT `fk_app_member`
+  FOREIGN KEY (`membersId`) REFERENCES `members` (`membersId`)
+);
+
+CREATE TABLE `loan` (
+  `loan_id` int NOT NULL AUTO_INCREMENT,
+  `application_id` int NOT NULL,
+  `membersId` int NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `interest_rate` decimal(5,2) NOT NULL,
+  `status` enum('active','cleared','defaulted') DEFAULT 'active',
+  `disbursement_date` date NOT NULL,
+  `interest_amount` decimal(10,2) NOT NULL,
+  `total_payable` decimal(10,2) NOT NULL,
+  `balance_left` decimal(10,2) NOT NULL,
+  PRIMARY KEY (`loan_id`)
+);
+
+CREATE TABLE `loan_repayments` (
+  `repayment_id` int NOT NULL AUTO_INCREMENT,
+  `loan_id` int NOT NULL,
+  `payment_date` date NOT NULL,
+  `amount_paid` decimal(10,2) NOT NULL,
+  `balance_after` decimal(10,2) NOT NULL,
+  PRIMARY KEY (`repayment_id`)
+);
+
+CREATE TABLE `transactions` (
+  `transaction_id` int NOT NULL AUTO_INCREMENT,
+  `account_id` int NOT NULL,
+  `loan_id` int DEFAULT NULL,
+  `membersId` int NOT NULL,
+  `type` enum('deposit','withdrawal','loan_disbursement','loan_repayment','adjustment') NOT NULL,
+  `amount` decimal(12,2) NOT NULL,
+  PRIMARY KEY (`transaction_id`)
+);
+
+CREATE TABLE `users` (
+  `users_id` int NOT NULL AUTO_INCREMENT,
+  `username` varchar(50) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `role` enum('admin','staff') DEFAULT 'staff',
+  PRIMARY KEY (`users_id`)
+);

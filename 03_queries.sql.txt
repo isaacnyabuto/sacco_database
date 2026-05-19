@@ -1,0 +1,150 @@
+USE sacco_db;
+
+-- =========================
+-- BASIC DATA VIEW QUERIES
+-- =========================
+
+-- View all members
+SELECT * FROM members;
+
+-- View all active members
+SELECT * FROM members
+WHERE status = 'active';
+
+-- View all accounts
+SELECT * FROM accounts;
+
+-- View all loans
+SELECT * FROM loan;
+
+-- View all loan applications
+SELECT * FROM loan_applications;
+
+-- View all transactions
+SELECT * FROM transactions;
+
+
+-- =========================
+-- JOIN QUERIES (IMPORTANT FOR MARKS)
+-- =========================
+
+-- Show members with their accounts
+SELECT 
+    m.membersId,
+    m.firstName,
+    m.lastName,
+    a.account_id,
+    a.account_type,
+    a.balance
+FROM members m
+JOIN accounts a ON m.membersId = a.membersid;
+
+
+-- Show members with loan applications
+SELECT 
+    m.firstName,
+    m.lastName,
+    l.application_id,
+    l.requested_amount,
+    l.status
+FROM members m
+JOIN loan_applications l ON m.membersId = l.membersId;
+
+
+-- Show active loans with member names
+SELECT 
+    m.firstName,
+    m.lastName,
+    l.loan_id,
+    l.amount,
+    l.balance_left
+FROM members m
+JOIN loan l ON m.membersId = l.membersId
+WHERE l.status = 'active';
+
+
+-- =========================
+-- AGGREGATE QUERIES
+-- =========================
+
+-- Total number of members
+SELECT COUNT(*) AS total_members FROM members;
+
+-- Total active members
+SELECT COUNT(*) AS active_members 
+FROM members 
+WHERE status = 'active';
+
+-- Total loan amount issued
+SELECT SUM(amount) AS total_loans FROM loan;
+
+-- Average loan amount
+SELECT AVG(amount) AS average_loan FROM loan;
+
+
+-- =========================
+-- GROUP BY QUERIES
+-- =========================
+
+-- Number of accounts per member
+SELECT 
+    membersid,
+    COUNT(*) AS total_accounts
+FROM accounts
+GROUP BY membersid;
+
+
+-- Loan count per status
+SELECT 
+    status,
+    COUNT(*) AS total_loans
+FROM loan
+GROUP BY status;
+
+
+-- =========================
+-- TRANSACTION ANALYSIS
+-- =========================
+
+-- Total deposits
+SELECT SUM(amount) AS total_deposits
+FROM transactions
+WHERE type = 'deposit';
+
+-- Total repayments
+SELECT SUM(amount) AS total_repayments
+FROM transactions
+WHERE type = 'loan_repayment';
+
+
+-- =========================
+-- ADVANCED QUERIES
+-- =========================
+
+-- Members who have loans greater than 50,000
+SELECT 
+    m.firstName,
+    m.lastName,
+    l.amount
+FROM members m
+JOIN loan l ON m.membersId = l.membersId
+WHERE l.amount > 50000;
+
+
+-- Members with no loans
+SELECT * FROM members
+WHERE membersId NOT IN (
+    SELECT DISTINCT membersId FROM loan
+);
+
+
+-- Highest loan
+SELECT * FROM loan
+ORDER BY amount DESC
+LIMIT 1;
+
+
+-- Lowest loan
+SELECT * FROM loan
+ORDER BY amount ASC
+LIMIT 1;
