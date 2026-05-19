@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # SACCO Management System Database
 
 ## Project Overview
@@ -144,3 +145,21 @@ The database uses foreign key constraints to maintain referential integrity betw
 - Recording deposits and withdrawals
 - Tracking loan repayments
 - Monitoring active loans
+=======
+## SQL Triggers Implemented
+
+The project includes several SQL triggers to automate SACCO operations:
+
+- Automatic loan creation after loan approval
+- Automatic account balance updates
+- Automatic loan repayment tracking
+- Automatic transaction recording
+- Loan status updates when balances reach zero
+- Interest and total payable calculations before loan insertion
+
+These triggers help simulate real-world SACCO and banking system behavior.
+
+
+# sacco_database
+A MySQL-based SACCO Management System database that models real-world cooperative operations including member management, savings accounts, loan processing, repayments, and financial transactions. The project demonstrates relational database design, normalization, foreign key relationships, and advanced SQL queries for reporting and analysis.
+>>>>>>> 16a73423c1610b0cf6c98bac1bc7681c350ee3d7

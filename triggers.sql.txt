@@ -1,0 +1,122 @@
+mysql> show triggers in sacco_db;
++--------------------------------+--------+-------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+------------------------+-----------------------------------------------------------------------------------------------------------------------+----------------+----------------------+----------------------+--------------------+
+| Trigger                        | Event  | Table             | Statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Timing | Created                | sql_mode                                                                                                              | Definer        | character_set_client | collation_connection | Database Collation |
++--------------------------------+--------+-------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+------------------------+-----------------------------------------------------------------------------------------------------------------------+----------------+----------------------+----------------------+--------------------+
+| trg_loan_before_insert         | INSERT | loan              | BEGIN
+    SET NEW.interest_amount = (NEW.amount * NEW.interest_rate / 100);
+    SET NEW.total_payable = NEW.amount + NEW.interest_amount;
+    SET NEW.balance_left = NEW.total_payable;
+
+    IF NEW.status IS NULL THEN
+        SET NEW.status = 'active';
+    END IF;
+END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | BEFORE | 2026-05-18 10:41:41.84 | ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION | root@localhost | cp850                | cp850_general_ci     | utf8mb4_0900_ai_ci |
+| trg_loan_disbursement          | INSERT | loan              | BEGIN
+    UPDATE accounts
+    SET balance = balance + NEW.amount
+    WHERE account_id = NEW.account_id;
+END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | AFTER  | 2026-05-18 11:24:43.84 | ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION | root@localhost | cp850                | cp850_general_ci     | utf8mb4_0900_ai_ci |
+| trg_loan_after_update          | UPDATE | loan              | BEGIN
+    IF OLD.status <> 'cleared' AND NEW.status = 'cleared' THEN
+
+        UPDATE loan_applications
+        SET status = 'approved'
+        WHERE application_id = NEW.application_id;
+
+    END IF;
+END    
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | AFTER  | 2026-05-18 10:48:19.58 | ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION | root@localhost | cp850                | cp850_general_ci     | utf8mb4_0900_ai_ci |
+| trg_after_application_approve  | UPDATE | loan_applications | BEGIN
+
+    IF OLD.status <> NEW.status AND NEW.status = 'approved' THEN
+
+        INSERT INTO loan (
+            application_id,
+            membersId,
+            amount,
+            interest_rate,
+            status,
+            disbursement_date,
+            interest_amount,
+            total_payable,
+            balance_left,
+            debug_log
+        )
+        VALUES (
+            NEW.application_id,
+            NEW.membersId,
+            NEW.requested_amount,
+            NEW.interest_rate,
+            'active',
+            CURDATE(),
+            (NEW.requested_amount * NEW.interest_rate / 100),
+            (NEW.requested_amount + (NEW.requested_amount * NEW.interest_rate / 100)),
+            (NEW.requested_amount + (NEW.requested_amount * NEW.interest_rate / 100)),
+            'AUTO CREATED ON APPROVAL'
+        );
+
+    END IF;
+
+END | AFTER  | 2026-05-18 10:54:51.07 | ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION | root@localhost | cp850                | cp850_general_ci     | utf8mb4_0900_ai_ci |
+
+
+
+| trg_repayment_after_insert     | INSERT | loan_repayments   | BEGIN
+    UPDATE loan
+    SET balance_left = balance_left - NEW.amount_paid
+    WHERE loan_id = NEW.loan_id;
+
+    UPDATE loan
+    SET status = 'cleared'
+    WHERE loan_id = NEW.loan_id AND balance_left <= 0;
+END                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  | AFTER  | 2026-05-18 10:42:45.58 | ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION | root@localhost | cp850                | cp850_general_ci     | utf8mb4_0900_ai_ci |
+| trg_repayment_transaction      | INSERT | loan_repayments   | BEGIN
+
+    INSERT INTO transactions (
+        account_id,
+        loan_id,
+        membersId,
+        type,
+        amount,
+        description
+    )
+    SELECT
+        l.account_id,
+        l.loan_id,
+        l.membersId,
+        'loan_repayment',
+        NEW.amount_paid,
+        'Auto repayment transaction'
+    FROM loan l
+    WHERE l.loan_id = NEW.loan_id;
+
+END 
+
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | AFTER  | 2026-05-18 11:55:54.63 | ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION | root@localhost | cp850                | cp850_general_ci     | utf8mb4_0900_ai_ci |
+| trg_transaction_update_balance | INSERT | transactions      | BEGIN
+
+    IF NEW.type = 'deposit' THEN
+        UPDATE accounts
+        SET balance = balance + NEW.amount
+        WHERE account_id = NEW.account_id;
+
+    ELSEIF NEW.type = 'withdrawal' THEN
+        UPDATE accounts
+        SET balance = balance - NEW.amount
+        WHERE account_id = NEW.account_id;
+
+    ELSEIF NEW.type = 'loan_disbursement' THEN
+        UPDATE accounts
+        SET balance = balance + NEW.amount
+        WHERE account_id = NEW.account_id;
+
+    ELSEIF NEW.type = 'loan_repayment' THEN
+        UPDATE accounts
+        SET balance = balance - NEW.amount
+        WHERE account_id = NEW.account_id;
+
+    END IF;
+
+END                                                                                                                                                                                                                              | AFTER  | 2026-05-18 11:49:09.42 | ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION | root@localhost | cp850                | cp850_general_ci     | utf8mb4_0900_ai_ci |
++--------------------------------+--------+-------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+--------+------------------------+-----------------------------------------------------------------------------------------------------------------------+----------------+----------------------+----------------------+--------------------+
