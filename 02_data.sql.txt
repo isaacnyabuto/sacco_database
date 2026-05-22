@@ -31,6 +31,8 @@ INSERT INTO transactions VALUES
 (2,61,NULL,11,'deposit',1000.00,0.00,0.00,NULL,'Test deposit','2026-05-18 08:46:44');
 
 -- users data
-INSERT INTO users VALUES
-(1,'tawama','handsomezozo','admin','2026-04-26 17:39:10',NULL),
-(2,'isaac','acc_off','staff','2026-04-29 16:32:35',NULL);
+4	admin_zozo	e86f78a8a3caf0b60d8e74e5942aa6d86dc150cd3c03338aef25b7d2d7e3acc7	admin	2026-05-22 11:24:22	
+5	teller_zozo	79f8ca65c130c412e0f6953e7c6a697dce8fcd6667d01e8647f6ef38a47579ec	staff	2026-05-22 11:24:22	
+6	audit_zozo	4e1a04597eed7da119dbc664574cc5451875847cc2df4138d2c49683d68c896f	staff	2026-05-22 11:24:22	
+7	entry_zozo	868619dab0efbced2202f2c0d1a1b365ea64524742bc9c2fcc7a44ea186fad1c	staff	2026-05-22 11:24:22	
+					
