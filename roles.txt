@@ -1,0 +1,49 @@
+--checking for the type of authentication
+shoW passWord_encryption;
+
+--creating group roles
+create role admin nologin;
+create role staff nologin;
+
+
+--Granting roles to users
+grant admin to  branch_manager;
+grant admin to  branch_manager1;
+
+grant staff to service_desk1;
+grant staff to service_desk2;
+grant staff to service_desk3;
+
+
+grant staff to counter1;
+grant staff to counter2;
+
+
+--granting privileges to the role groups
+
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO admin;
+
+grant select, insert, update on members to staff;
+GRANT SELECT, INSERT ON accounts TO staff;
+GRANT SELECT, INSERT ON loan_applications TO staff;
+GRANT SELECT ON loan TO staff;
+
+
+--revoking privileges so that i can remove the counter user from having some privileges
+
+REVOKE SELECT, INSERT, UPDATE ON members FROM staff;
+REVOKE SELECT, INSERT ON accounts FROM staff;
+REVOKE SELECT, INSERT ON loan_applications FROM staff;
+REVOKE SELECT ON loan FROM staff;
+
+--creating a counter role accessing priviledges to be user by its user
+create role counter nologin;
+grant counter to counter1;
+grant counter to counter2;
+
+GRANT SELECT ON members TO counter;
+GRANT SELECT ON accounts TO counter;
+GRANT SELECT ON transactions TO counter;
+GRANT SELECT ON loan TO counter;
+GRANT SELECT ON loan_repayments TO counter;
+
