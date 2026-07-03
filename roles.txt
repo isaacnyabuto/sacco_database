@@ -1,5 +1,3 @@
---checking for the type of authentication
-shoW passWord_encryption;
 
 --creating group roles
 create role admin nologin;
