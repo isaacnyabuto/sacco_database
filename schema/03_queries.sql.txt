@@ -1,150 +1,67 @@
-USE sacco_db;
-
--- =========================
--- BASIC DATA VIEW QUERIES
--- =========================
-
--- View all members
-SELECT * FROM members;
-
--- View all active members
-SELECT * FROM members
-WHERE status = 'active';
-
--- View all accounts
-SELECT * FROM accounts;
-
--- View all loans
-SELECT * FROM loan;
-
--- View all loan applications
-SELECT * FROM loan_applications;
-
--- View all transactions
-SELECT * FROM transactions;
-
-
--- =========================
--- JOIN QUERIES (IMPORTANT FOR MARKS)
--- =========================
-
--- Show members with their accounts
+-------------1.checks members with more than one accounts.
 SELECT 
-    m.membersId,
-    m.firstName,
-    m.lastName,
-    a.account_id,
-    a.account_type,
-    a.balance
-FROM members m
-JOIN accounts a ON m.membersId = a.membersid;
+    m.membersid, 
+    m.firstname, 
+    m.lastname, 
+    COUNT(a.account_id) AS total_accounts_owned
+FROM public.members m
+JOIN public.accounts a ON m.membersid = a.membersid
+WHERE m.membersid >= 22
+GROUP BY m.membersid, m.firstname, m.lastname
+HAVING COUNT(a.account_id) > 1
+ORDER BY total_accounts_owned DESC;
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
--- Show members with loan applications
+-----------------------------2.DATA TO VERIFY LOAN APLLICATION TABLE AND ITS TRIGGER FUNCTIONS AND IF THEY AFFECT THE ACCOUNTS AND LOANS TABLE
+-- 1. Insert exactly 40 PENDING applications
+INSERT INTO public.loan_applications (membersid, application_date, requested_amount, interest_rate, status, approved_date)
 SELECT 
-    m.firstName,
-    m.lastName,
-    l.application_id,
-    l.requested_amount,
-    l.status
-FROM members m
-JOIN loan_applications l ON m.membersId = l.membersId;
+    m.membersid,
+    CURRENT_DATE - (random() * 90)::integer AS application_date, -- Within last 3 months
+    ROUND((random() * 200000 + 10000)::numeric, 2) AS requested_amount,
+    ROUND((random() * 5 + 10)::numeric, 2) AS interest_rate, -- 10% to 15%
+    'pending'::text AS status,
+    NULL AS approved_date
+FROM public.members m
+WHERE m.membersid >= 22
+ORDER BY random() -- Randomizes which members get picked
+LIMIT 40;
 
-
--- Show active loans with member names
+-- 2. Insert exactly 40 REJECTED applications
+INSERT INTO public.loan_applications (membersid, application_date, requested_amount, interest_rate, status, approved_date)
 SELECT 
-    m.firstName,
-    m.lastName,
-    l.loan_id,
-    l.amount,
-    l.balance_left
-FROM members m
-JOIN loan l ON m.membersId = l.membersId
-WHERE l.status = 'active';
-
-
--- =========================
--- AGGREGATE QUERIES
--- =========================
-
--- Total number of members
-SELECT COUNT(*) AS total_members FROM members;
-
--- Total active members
-SELECT COUNT(*) AS active_members 
-FROM members 
-WHERE status = 'active';
-
--- Total loan amount issued
-SELECT SUM(amount) AS total_loans FROM loan;
-
--- Average loan amount
-SELECT AVG(amount) AS average_loan FROM loan;
-
-
--- =========================
--- GROUP BY QUERIES
--- =========================
-
--- Number of accounts per member
-SELECT 
-    membersid,
-    COUNT(*) AS total_accounts
-FROM accounts
-GROUP BY membersid;
-
-
--- Loan count per status
-SELECT 
-    status,
-    COUNT(*) AS total_loans
-FROM loan
+    m.membersid,
+    CURRENT_DATE - (random() * 180 + 90)::integer AS application_date, -- Older dates (3 to 9 months ago)
+    ROUND((random() * 400000 + 50000)::numeric, 2) AS requested_amount,
+    ROUND((random() * 5 + 12)::numeric, 2) AS interest_rate, -- 12% to 17%
+    'rejected'::text AS status,
+    NULL AS approved_date
+FROM public.members m
+WHERE m.membersid >= 22
+-- Ensure we favor picking different random distributions
+ORDER BY random()
+LIMIT 40;
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+--checking for the number of loans accounts and their status
+SELECT status, COUNT(*) 
+FROM public.loan_applications 
 GROUP BY status;
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
--- =========================
--- TRANSACTION ANALYSIS
--- =========================
-
--- Total deposits
-SELECT SUM(amount) AS total_deposits
-FROM transactions
-WHERE type = 'deposit';
-
--- Total repayments
-SELECT SUM(amount) AS total_repayments
-FROM transactions
-WHERE type = 'loan_repayment';
-
-
--- =========================
--- ADVANCED QUERIES
--- =========================
-
--- Members who have loans greater than 50,000
+-----adds members with their loans approved.
+INSERT INTO public.loan_applications (membersid, application_date, requested_amount, interest_rate, status, approved_date)
 SELECT 
-    m.firstName,
-    m.lastName,
-    l.amount
-FROM members m
-JOIN loan l ON m.membersId = l.membersId
-WHERE l.amount > 50000;
+    m.membersid,
+    CURRENT_DATE - (random() * 60 + 30)::integer AS application_date, 
+    ROUND((random() * 150000 + 20000)::numeric, 2) AS requested_amount,
+    ROUND((random() * 4 + 8)::numeric, 2) AS interest_rate, 
+    'approved'::text AS status, -- This exact value activates your new trigger function
+    CURRENT_DATE - (random() * 30)::integer AS approved_date 
+FROM public.members m
+WHERE m.membersid >= 22
+ORDER BY random()
+LIMIT 40;
 
-
--- Members with no loans
-SELECT * FROM members
-WHERE membersId NOT IN (
-    SELECT DISTINCT membersId FROM loan
-);
-
-
--- Highest loan
-SELECT * FROM loan
-ORDER BY amount DESC
-LIMIT 1;
-
-
--- Lowest loan
-SELECT * FROM loan
-ORDER BY amount ASC
-LIMIT 1;

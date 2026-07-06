@@ -1,49 +1,56 @@
-USE sacco_db;
 
-select * from  members;
+---code to insert test mock data
 
--- members data
-INSERT INTO members(firstname,lastname,nationalid,phone,email,join_date,status) VALUES
-('James','omuro','10000001','0701000001','james11@email.com','2026-05-15','active'),
-('joseph','kombo','10000002','0701000002','joseph22@email.com','2026-05-15','active'),
-('joseph','maina','10000003','0701000003','joseph33@email.com','2026-05-15','inactive'),
-('isaac','kombo','10000004','0701000004','isaac44@email.com','2026-05-15','active'),
-('joyce','njenga','10000005','0701000005','joyce55@email.com','2026-05-15','active'),
-('Parpetual','thuo','10000006','0701000007','parpetual66@email.com','2026-05-15','inactive');
+INSERT INTO public.members (firstname, lastname, nationalid, phone, email, join_date, status)
+SELECT 
+    -- 1. Random First Names
+    (ARRAY['John', 'Jane', 'Michael', 'Emily', 'David', 'Sarah', 'James', 'Robert', 'Mary', 'Patricia', 'Linda', 'Barbara', 'William', 'Richard', 'Joseph', 'Thomas', 'Charles', 'Christopher', 'Daniel', 'Matthew'])[floor(random() * 20) + 1] AS firstname,
+    
+    -- 2. Random Last Names
+    (ARRAY['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin'])[floor(random() * 20) + 1] AS lastname,
+    
+    -- 3. Unique National ID (guarantees uniqueness)
+    'ID-' || (1000000 + i) AS nationalid,
+    
+    -- 4. Random Phone Numbers
+    '+1-' || floor(random() * (999-200) + 200)::text || '-' || floor(random() * (999-200) + 200)::text || '-' || floor(random() * (9999-1000) + 1000)::text AS phone,
+    
+    -- 5. Random Emails
+    LOWER(
+        (ARRAY['John', 'Jane', 'Michael', 'Emily', 'David', 'Sarah', 'James', 'Robert', 'Mary', 'Patricia'])[floor(random() * 10) + 1] || '.' || 
+        (ARRAY['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'])[floor(random() * 10) + 1] || 
+        i::text || '@example.com'
+    ) AS email,
+    
+    -- 6. Random Join Dates over the last 3 years
+    CURRENT_DATE - (random() * 1095)::integer AS join_date,
+    
+    -- 7. Status weighted (roughly 90% active, 10% inactive)
+    CASE WHEN random() < 0.9 THEN 'active' ELSE 'inactive' END AS status
+FROM generate_series(1, 10000) AS i;
+
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
-select * from accounts;
+INSERT INTO public.accounts (account_type, balance, created_at, membersid)
+-- 1. Create a Saving Account for every member starting at ID 22
+SELECT 
+    'saving' AS account_type,
+    ROUND((random() * 50000 + 100)::numeric, 2) AS balance, -- Random saving balance between 100 and 50,100
+    CURRENT_TIMESTAMP - (random() * 365 || ' days')::interval AS created_at, -- Created sometime within the last year
+    m.membersid
+FROM public.members m
+WHERE m.membersid >= 22
 
-INSERT INTO accounts(account_type,balance,membersid) VALUES
-('loan',10000.00,14),
-('saving',50000.00,15),
-('saving',200000.00,16),
-('saving',15000.00,17),
-('saving',7000.00,18),
-('saving',2000.00,19);
+UNION ALL
 
-
--- loan applications data
-INSERT INTO loan_applications VALUES
-(5,2,'2026-05-10',30000.00,10.00,'approved',NULL),
-(9,6,'2026-05-12',45000.00,11.50,'approved',NULL);
-
--- loans data
-INSERT INTO loan VALUES
-(1,5,2,30000.00,10.00,'active','2026-05-18',3000.00,33000.00,8000.00,'AUTO CREATED ON APPROVAL',NULL);
-
--- loan repayments data
-INSERT INTO loan_repayments VALUES
-(1,1,'2026-05-18',2000.00,0.00),
-(2,1,'2026-05-18',3000.00,0.00);
-
--- transactions data
-select * from transactions;
-
-INSERT INTO transactions(account_id,loan_id,membersid,type,amount)
-VALUES
-(7,null,14,'deposit',10000),
-(8,null,15,'withdrawal',30000);
-
+-- 2. Create a Loan Account for roughly 40% of those members
+SELECT 
+    'loan' AS account_type,
+    ROUND((random() * 150000 + 5000)::numeric, 2) AS balance, -- Random loan balance (amount owed) between 5,000 and 155,000
+    CURRENT_TIMESTAMP - (random() * 180 || ' days')::interval AS created_at, -- Created within the last 6 months
+    m.membersid
+FROM public.members m
+WHERE m.membersid >= 22 AND random() < 0.40; -- 40% chance of a member having a loan
 
 
