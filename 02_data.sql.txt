@@ -1,33 +1,58 @@
 
 ---code to insert test mock data
-
-INSERT INTO public.members (firstname, lastname, nationalid, phone, email, join_date, status)
-SELECT 
-    -- 1. Random First Names
-    (ARRAY['John', 'Jane', 'Michael', 'Emily', 'David', 'Sarah', 'James', 'Robert', 'Mary', 'Patricia', 'Linda', 'Barbara', 'William', 'Richard', 'Joseph', 'Thomas', 'Charles', 'Christopher', 'Daniel', 'Matthew'])[floor(random() * 20) + 1] AS firstname,
-    
-    -- 2. Random Last Names
-    (ARRAY['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin'])[floor(random() * 20) + 1] AS lastname,
-    
-    -- 3. Unique National ID (guarantees uniqueness)
-    'ID-' || (1000000 + i) AS nationalid,
-    
-    -- 4. Random Phone Numbers
-    '+1-' || floor(random() * (999-200) + 200)::text || '-' || floor(random() * (999-200) + 200)::text || '-' || floor(random() * (9999-1000) + 1000)::text AS phone,
-    
-    -- 5. Random Emails
-    LOWER(
-        (ARRAY['John', 'Jane', 'Michael', 'Emily', 'David', 'Sarah', 'James', 'Robert', 'Mary', 'Patricia'])[floor(random() * 10) + 1] || '.' || 
-        (ARRAY['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez'])[floor(random() * 10) + 1] || 
-        i::text || '@example.com'
-    ) AS email,
-    
-    -- 6. Random Join Dates over the last 3 years
-    CURRENT_DATE - (random() * 1095)::integer AS join_date,
-    
-    -- 7. Status weighted (roughly 90% active, 10% inactive)
-    CASE WHEN random() < 0.9 THEN 'active' ELSE 'inactive' END AS status
-FROM generate_series(1, 10000) AS i;
+INSERT INTO
+	PUBLIC.MEMBERS (
+		FIRSTNAME,
+		LASTNAME,
+		NATIONALID,
+		PHONE,
+		EMAIL,
+		JOIN_DATE,
+		STATUS
+	)
+SELECT
+	-- 1. Random First Names
+	(
+		ARRAY[
+			'John', 'Jane', 'Michael', 'Emily', 'David', 
+			'Sarah', 'James', 'Robert', 'Mary', 'Patricia', 
+			'Linda', 'Barbara', 'William', 'Richard', 'Joseph', 
+			'Thomas', 'Charles', 'Christopher', 'Daniel', 'Matthew'
+		]
+	) [FLOOR(RANDOM() * 20) + 1] AS FIRSTNAME,
+	
+	-- 2. Random Last Names
+	(
+		ARRAY[
+			'Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 
+			'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez', 
+			'Hernandez', 'Lopez', 'Gonzalez', 'Wilson', 'Anderson', 
+			'Thomas', 'Taylor', 'Moore', 'Jackson', 'Martin'
+		]
+	) [FLOOR(RANDOM() * 20) + 1] AS LASTNAME,
+	
+	-- 3. Unique National ID
+	'ID-' || (1000000 + I) AS NATIONALID,
+	
+	-- 4. Random Phone Numbers
+	'+1-' || FLOOR(RANDOM() * (999 -200) + 200)::TEXT || '-' || FLOOR(RANDOM() * (999 -200) + 200)::TEXT || '-' || FLOOR(RANDOM() * (9999 -1000) + 1000)::TEXT AS PHONE,
+	
+	-- 5. Random Emails
+	LOWER(
+		(
+			ARRAY['John', 'Jane', 'Michael', 'Emily', 'David', 'Sarah', 'James', 'Robert', 'Mary', 'Patricia']
+		) [FLOOR(RANDOM() * 10) + 1] || '.' || (
+			ARRAY['Smith', 'Johnson', 'Williams', 'Brown', 'Jones', 'Garcia', 'Miller', 'Davis', 'Rodriguez', 'Martinez']
+		) [FLOOR(RANDOM() * 10) + 1] || I::TEXT || '@example.com'
+	) AS EMAIL,
+	
+	-- 6. Random Join Dates over the last 3 years
+	CURRENT_DATE - (RANDOM() * 1095)::INTEGER AS JOIN_DATE,
+	
+	-- 7. FIXED: Set everyone to 'active' so the savings account trigger succeeds
+	'active' AS STATUS
+FROM
+	GENERATE_SERIES(1, 10000) AS I;
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -42,7 +67,7 @@ SELECT
 FROM public.members m
 WHERE m.membersid >= 22
 
-UNION ALL
+
 
 -- 2. Create a Loan Account for roughly 40% of those members
 SELECT 
