@@ -67,7 +67,7 @@ SELECT
 FROM public.members m
 WHERE m.membersid >= 22
 
-
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 -- 2. Create a Loan Account for roughly 40% of those members
 SELECT 
@@ -76,6 +76,51 @@ SELECT
     CURRENT_TIMESTAMP - (random() * 180 || ' days')::interval AS created_at, -- Created within the last 6 months
     m.membersid
 FROM public.members m
-WHERE m.membersid >= 22 AND random() < 0.40; -- 40% chance of a member having a loan
+WHERE m.membersid >= 10001 AND random() < 0.40; -- 40% chance of a member having a loan
 
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ 1. Safely disable triggers for this session only (Requires Superuser / Admin privileges)
+SET session_replication_role = 'replica';
 
+-- 2. Execute the anonymous data insertion block
+DO $$
+DECLARE
+    v_member_id INT;
+    v_status TEXT;
+    v_app_date DATE;
+    v_req_amt NUMERIC(10,2);
+    v_rate NUMERIC(5,2);
+    v_appr_date DATE;
+    v_counter INT := 0;
+BEGIN
+    FOR v_member_id IN 10001..10800 LOOP
+        -- Distribute statuses exactly to your requested limits
+        IF v_counter < 200 THEN
+            v_status := 'pending';
+        ELSIF v_counter < 500 THEN
+            v_status := 'approved';
+        ELSE
+            v_status := 'rejected';
+        END IF;
+
+        -- Generate dynamic data variations using the loop counter
+        v_app_date := '2026-01-01'::DATE + (v_member_id % 120);
+        v_req_amt := round((30000 + (v_member_id % 450) * 1000)::numeric, 2);
+        v_rate := round((5.5 + (v_member_id % 20) * 0.5)::numeric, 2);
+        
+        -- Apply the approved_date only if the status is approved
+        IF v_status = 'approved' THEN
+            v_appr_date := v_app_date + (v_member_id % 10 + 2);
+        ELSE
+            v_appr_date := NULL;
+        END IF;
+
+        INSERT INTO public.loan_applications (application_date, membersid, requested_amount, interest_rate, status, approved_date)
+        VALUES (v_app_date, v_member_id, v_req_amt, v_rate, v_status, v_appr_date);
+
+        v_counter := v_counter + 1;
+    END LOOP;
+END $$;
+
+-- 3. IMMEDIATELY turn triggers back on for normal application usage
+SET session_replication_role = 'origin';
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
