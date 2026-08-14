@@ -1,6 +1,0 @@
-----indexes on the members table
-
-CREATE UNIQUE INDEX idx_members_member_number ON members(phone);
-CREATE UNIQUE INDEX idx_members_national_id ON members(nationalid);
-CREATE INDEX idx_members_status ON members(status);
-
